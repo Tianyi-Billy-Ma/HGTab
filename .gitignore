@@ -1,0 +1,5 @@
+Data/
+Experiments/
+Logs/
+wandb/
+.vscode/
