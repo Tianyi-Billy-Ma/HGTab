@@ -1,0 +1,3 @@
+[submodule "src/ColBERT"]
+	path = src/ColBERT
+	url = https://github.com/Tianyi-Billy-Ma/ColBERT.git
