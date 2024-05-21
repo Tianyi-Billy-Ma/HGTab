@@ -149,10 +149,16 @@ class BaseExecutor(pl.LightningModule, MetricsProcessor):
             dataloader_idx: [] for dataloader_idx in range(len(self.valid_dataloaders))
         }
 
-    def on_validation_epoch_end(self, outputs, batch, batch_idx, dataloader_idx=0):
+    def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0):
         self.validation_step_outputs[dataloader_idx].append(outputs)
-        
-    
+
+    def on_test_epoch_start(self):
+        self.test_step_outputs = {
+            dataloader_idx: [] for dataloader_idx in range(len(self.test_dataloaders))
+        }
+
+    def on_test_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0):
+        self.test_step_outputs[dataloader_idx].append(outputs)
 
     def forward(self, **kwargs):
         return self.model(**kwargs)

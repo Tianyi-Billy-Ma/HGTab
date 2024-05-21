@@ -224,9 +224,7 @@ class ITRDPRExecutor(BaseExecutor):
     def on_validation_epoch_start(self):
         # This is called when the validation epoch starts.
         # Initialize the validation_step_outputs to store the outputs of each validation step.
-        self.validation_step_outputs = {
-            dataloader_idx: [] for dataloader_idx in range(len(self.val_dataloader()))
-        }
+        self.validation_step_outputs = [[] * len(self.val_dataloader())]
 
     def validation_step(self, sample_batched, batch_idx, dataloader_idx=0):
         # print(f'batch_idx {batch_idx}  dataloader_idx {dataloader_idx}')
@@ -236,8 +234,7 @@ class ITRDPRExecutor(BaseExecutor):
         self.validation_step_outputs[dataloader_idx].append(outputs)
 
     def on_validation_epoch_end(self, validation_step_outputs=None):
-        if validation_step_outputs is None:
-            validation_step_outputs = self.validation_step_outputs
+        validation_step_outputs = self.validation_step_outputs
         for i in range(len(self.val_dataloader())):
             if len(self.val_dataloader()) == 1:
                 validation_step_output = validation_step_outputs[0]
@@ -265,13 +262,12 @@ class ITRDPRExecutor(BaseExecutor):
     def on_test_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0):
         self.test_step_outputs[dataloader_idx].append(outputs)
 
-    def on_test_epoch_end(self, test_step_outputs=None):
-        if test_step_outputs is None:
-            test_step_outputs = self.test_step_outputs
+    def on_test_epoch_end(self):
+        test_step_outputs = self.test_step_outputs
         self.save_HF_model()
         for i in range(len(self.test_dataloader())):
             if len(self.test_dataloader()) == 1:
-                test_step_output = test_step_outputs
+                test_step_output = test_step_outputs[0]
             else:
                 test_step_output = test_step_outputs[i]
             if len(test_step_output) > 0:
