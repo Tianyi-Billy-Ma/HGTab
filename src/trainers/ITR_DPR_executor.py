@@ -240,7 +240,7 @@ class ITRDPRExecutor(BaseExecutor):
             validation_step_outputs = self.validation_step_outputs
         for i in range(len(self.val_dataloader())):
             if len(self.val_dataloader()) == 1:
-                validation_step_output = validation_step_outputs
+                validation_step_output = validation_step_outputs[0]
             else:
                 validation_step_output = validation_step_outputs[i]
             if len(validation_step_output) > 0:
@@ -264,8 +264,6 @@ class ITRDPRExecutor(BaseExecutor):
 
     def on_test_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0):
         self.test_step_outputs[dataloader_idx].append(outputs)
-        if dataloader_idx == 1:
-            print("")
 
     def on_test_epoch_end(self, test_step_outputs=None):
         if test_step_outputs is None:

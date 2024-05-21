@@ -444,7 +444,7 @@ if __name__ == "__main__":
         # "DPR_InnerTableRetrieval_wikisql_with_in_batch_neg_sampling_mixed",
         "Llama_3_8B_wikitq",
         "--mode",
-        "test",
+        "train",
         "--override",
         "--disable_wandb_logging",
         "--opts",
@@ -474,7 +474,7 @@ if __name__ == "__main__":
         "DPR_InnerTableRetrieval_wikisql_with_in_batch_neg_sampling_mixed",
         # "Llama_3_8B_wikitq",
         "--mode",
-        "test",
+        "train",
         # "--override",
         "--disable_wandb_logging",
         "--opts",
@@ -491,8 +491,6 @@ if __name__ == "__main__":
         # "valid.step_size=200",
         "reset=0",
     ]
-
-    # main(arg_list2)
 
     tapex_wikitq = [
         "configs/wikiTQ/tapex_base.jsonnet",
@@ -522,4 +520,4 @@ if __name__ == "__main__":
         "train.additional.label_smoothing_factor=0.1",
     ]
 
-    main(tapex_wikitq)
+    main(dpr_ITR_mix_wtq)
