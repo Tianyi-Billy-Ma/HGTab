@@ -145,17 +145,13 @@ class BaseExecutor(pl.LightningModule, MetricsProcessor):
                 self.wandb_logger.experiment.finish()
 
     def on_validation_epoch_start(self):
-        self.validation_step_outputs = {
-            dataloader_idx: [] for dataloader_idx in range(len(self.valid_dataloaders))
-        }
+        self.validation_step_outputs = [[]] * len(self.val_dataloader())
 
     def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0):
         self.validation_step_outputs[dataloader_idx].append(outputs)
 
     def on_test_epoch_start(self):
-        self.test_step_outputs = {
-            dataloader_idx: [] for dataloader_idx in range(len(self.test_dataloaders))
-        }
+        self.test_step_outputs = [[]] * len(self.test_dataloader())
 
     def on_test_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0):
         self.test_step_outputs[dataloader_idx].append(outputs)

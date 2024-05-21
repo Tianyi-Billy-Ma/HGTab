@@ -224,7 +224,7 @@ class ITRDPRExecutor(BaseExecutor):
     def on_validation_epoch_start(self):
         # This is called when the validation epoch starts.
         # Initialize the validation_step_outputs to store the outputs of each validation step.
-        self.validation_step_outputs = [[] * len(self.val_dataloader())]
+        self.validation_step_outputs = [[]] * len(self.val_dataloader())
 
     def validation_step(self, sample_batched, batch_idx, dataloader_idx=0):
         # print(f'batch_idx {batch_idx}  dataloader_idx {dataloader_idx}')
@@ -236,10 +236,7 @@ class ITRDPRExecutor(BaseExecutor):
     def on_validation_epoch_end(self, validation_step_outputs=None):
         validation_step_outputs = self.validation_step_outputs
         for i in range(len(self.val_dataloader())):
-            if len(self.val_dataloader()) == 1:
-                validation_step_output = validation_step_outputs[0]
-            else:
-                validation_step_output = validation_step_outputs[i]
+            validation_step_output = validation_step_outputs[i]
             if len(validation_step_output) > 0:
                 log_dict = self.evaluate_outputs(
                     validation_step_output,
@@ -252,9 +249,7 @@ class ITRDPRExecutor(BaseExecutor):
     def on_test_batch_start(self, sample_batched, batch_idx, dataloader_idx=0):
         # This is called when the test epoch starts.
         # Initialize the test_step_outputs to store the outputs of each test step.
-        self.test_step_outputs = {
-            dataloader_idx: [] for dataloader_idx in range(len(self.test_dataloader()))
-        }
+        self.test_step_outputs = [[]] * len(self.test_dataloader())
 
     def test_step(self, sample_batched, batch_idx, dataloader_idx=0):
         return self._compute_query_embeddings_step(sample_batched, batch_idx)

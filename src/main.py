@@ -521,10 +521,10 @@ if __name__ == "__main__":
     ]
 
     dpr_ITR_mix_sql = [
-        "configs/wikisql/dpr_ITR_mix_wikisql.jsonnet",
+        "configs/wikiSQL/dpr_ITR_mix_wikisql.jsonnet",
         "--accelerator",
         "gpu",
-        "--devices",
+        "--device",
         "1",
         "--strategy",
         "ddp",
@@ -547,7 +547,7 @@ if __name__ == "__main__":
         "valid.batch_size=8",
         "test.batch_size=8",
         "valid.step_size=200",
-        "reset=1",
+        # "reset=1",
     ]
 
-    main(dpr_ITR_mix_wtq)
+    main(dpr_ITR_mix_sql)

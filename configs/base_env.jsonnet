@@ -19,7 +19,7 @@ local early_stop_patience = 3;
 local seed = 3;
 
 local wandb_cache_dir = '~/.cache/wandb';
-local wandb_dir = '/media/mtybilly/My Passport1/Program/HGTab/wandb';
+local wandb_dir = 'wandb';
 local default_cache_folder = 'cache';
 
 
