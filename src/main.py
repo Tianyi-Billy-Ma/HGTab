@@ -394,8 +394,6 @@ def main(arg_list=None):
     # init data loader manager
     data_loader_manager.build_dataset()
 
-    torch.cuda.empty_cache()
-
     if config.mode == "train":
         # init train excecutor
         Train_Executor = globals()[config.train.type]
@@ -504,6 +502,7 @@ if __name__ == "__main__":
         "finetune_tapex_large_on_WikiTQ_smoothing_0.1",
         "--mode",
         "train",
+        "--override",
         "--opts",
         "train.batch_size=1",
         "train.scheduler=linear",
@@ -525,7 +524,7 @@ if __name__ == "__main__":
         "--accelerator",
         "gpu",
         "--device",
-        "1",
+        "4",
         "--strategy",
         "ddp",
         "--num_sanity_val_steps",
@@ -534,7 +533,7 @@ if __name__ == "__main__":
         "DPR_InnerTableRetrieval_wikisql_with_in_batch_neg_sampling_mixed",
         "--mode",
         "train",
-        # "--override",
+        "--override",
         "--opts",
         "train.batch_size=1",
         "train.scheduler=None",
@@ -547,7 +546,71 @@ if __name__ == "__main__":
         "valid.batch_size=8",
         "test.batch_size=8",
         "valid.step_size=200",
-        # "reset=1",
+        "reset=1",
     ]
 
-    main(dpr_ITR_mix_sql)
+    colbert_nqtables = [
+        "configs/nq_tables/colbert.jsonnet",
+        "--accelerator",
+        "gpu",
+        "--device",
+        "8",
+        "--strategy",
+        "ddp",
+        "--num_sanity_val_steps",
+        "2",
+        "--experiment_name",
+        "ColBERT_NQTables_bz4_negative4_fix_doclen_full_search_NewcrossGPU",
+        "--mode",
+        # "train",
+        "create_data",
+        "--override",
+        "--opts",
+        "train.batch_size=6",
+        "train.scheduler=None",
+        "train.epochs=1000",
+        "train.lr=0.00001",
+        "train.additional.gradient_accumulation_steps=4",
+        "train.additional.warmup_steps=0",
+        "train.additional.early_stop_patience=10",
+        "train.additional.save_top_k=3",
+        "valid.batch_size=32",
+        "test.batch_size=32",
+        "valid.step_size=200",
+        "data_loader.dummy_dataloader=0",
+        "reset=1",
+        "model_config.num_negative_samples=4",
+        "model_config.bm25_top_k=5",
+        "model_config.bm25_ratio=0",
+        "model_config.nbits=2",
+    ]
+
+    dpr_wtq = [
+        "configs/wikiTQ/dpr_wtq.jsonnet",
+        "--accelerator",
+        "gpu",
+        "--device",
+        "1",
+        "--strategy",
+        "ddp",
+        "--experiment_name",
+        "DPR_large_on_WikiTQ_",
+        "--mode",
+        "train",
+        "--override",
+        "--opts",
+        "train.batch_size=1",
+        "train.scheduler=linear",
+        "train.epochs=20",
+        "train.lr=0.00003",
+        "train.additional.gradient_accumulation_steps=4",
+        "train.additional.warmup_steps=1000",
+        "train.additional.early_stop_patience=6",
+        "train.additional.save_top_k=3",
+        "train.save_interval=1000",
+        "valid.batch_size=4",
+        "test.batch_size=4",
+        "data_loader.dummy_dataloader=0",
+        "train.additional.label_smoothing_factor=0.1",
+    ]
+    main(tapex_wikitq)
