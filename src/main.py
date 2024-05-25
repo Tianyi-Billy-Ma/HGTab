@@ -534,6 +534,7 @@ if __name__ == "__main__":
         "--mode",
         "train",
         "--override",
+        "--disable_wandb_logging",
         "--opts",
         "train.batch_size=1",
         "train.scheduler=None",
@@ -594,7 +595,7 @@ if __name__ == "__main__":
         "--strategy",
         "ddp",
         "--experiment_name",
-        "DPR_large_on_WikiTQ_",
+        "DPR_large_on_WikiTQ",
         "--mode",
         "train",
         "--override",
@@ -613,4 +614,35 @@ if __name__ == "__main__":
         "data_loader.dummy_dataloader=0",
         "train.additional.label_smoothing_factor=0.1",
     ]
-    main(tapex_wikitq)
+
+    dpr_sql = [
+        "configs/wikiSQL/dpr_wikisql.jsonnet",
+        "--accelerator",
+        "gpu",
+        "--device",
+        "1",
+        "--strategy",
+        "ddp",
+        "--experiment_name",
+        "DPR_large_on_WikiSQL_with_in_batch_over_hypergraph",
+        "--mode",
+        "train",
+        "--override",
+        "--disable_wandb_logging",
+        "--opts",
+        "train.batch_size=1",
+        "train.scheduler=linear",
+        "train.epochs=20",
+        "train.lr=0.00003",
+        "train.additional.gradient_accumulation_steps=4",
+        "train.additional.warmup_steps=1000",
+        "train.additional.early_stop_patience=6",
+        "train.additional.save_top_k=3",
+        "train.save_interval=1000",
+        "valid.batch_size=4",
+        "test.batch_size=4",
+        "data_loader.dummy_dataloader=0",
+        "train.additional.label_smoothing_factor=0.1",
+    ]
+
+    main(dpr_sql)

@@ -25,9 +25,6 @@ local override = {
   ignore_pretrained_weights: [],
   experiment_name: 'default_test',
   seed: seed,
-  WANDB: {
-    tags: [],
-  },
   model_config: {
     base_model: 'DPR',
     ModelClass: 'RetrieverDPR',
@@ -47,8 +44,6 @@ local override = {
     ],
     Ks: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 50, 80, 100],
     num_negative_samples: 4,
-    bm25_ratio: 0,
-    bm25_top_k: 3,
     prepend_tokens: {
       query_encoder: '',
       item_encoder: '',
@@ -57,7 +52,7 @@ local override = {
       additional_special_tokens: [],
     },
     DECODER_SPECIAL_TOKENS: {
-      additional_special_tokens: ['<HEADER>', '<HEADER_SEP>', '<HEADER_END>', '<ROW>', '<ROW_SEP>', '<ROW_END>', '<BOT>', '<EOT>'],
+      additional_special_tokens: ['<HEADER>', '<HEADER_SEP>', '<HEADER_END>', '<ROW>', '<ROW_SEP>', '<ROW_END>'],
     },
     input_modules: {
       module_list: [
@@ -73,12 +68,28 @@ local override = {
     },
     decoder_input_modules: {
       module_list: [
+        // {
+        //   type: 'TextBasedTableInput',
+        //   option: 'default',
+        //   separation_tokens: { header_start: '<HEADER>', header_sep: '<HEADER_SEP>', header_end: '<HEADER_END>', row_start: '<ROW>', row_sep: '<ROW_SEP>', row_end: '<ROW_END>' },
+        // },
         {
-          type: 'TextBasedTableInput',
+          type: 'HypergraphInput',
           option: 'default',
-          add_title: 0,
-          separation_tokens: { header_start: '<HEADER>', header_sep: '<HEADER_SEP>', header_end: '<HEADER_END>', row_start: '<ROW>', row_sep: '<ROW_SEP>', row_end: '<ROW_END>', title_start: '<BOT>', title_end: '<EOT>' },
-          //"separation_tokens": {"header_start": "[SEP]", "header_sep": "[SEP]", "header_end": "", "row_start": "[SEP]", "row_sep": "[SEP]", "row_end": "", "title_start": "", "title_end": ""}
+          separation_tokens: {
+            header_start: '<HEADER>',
+            header_sep: '<HEADER_SEP>',
+            header_end: '<HEADER_END>',
+            row_start: '<ROW>',
+            row_sep: '<ROW_SEP>',
+            row_end: '<ROW_END>',
+            col_start: '<COL>',
+            col_sep: '<COL_SEP>',
+            col_end: '<COL_END>',
+            cell_start: '<CELL>',
+            cell_sep: '<CELL_SEP>',
+            cell_end: '<CELL_END>',
+          },
         },
       ],
       postprocess_module_list: [
@@ -104,43 +115,60 @@ local override = {
     },
     dataset_modules: {
       module_list: [
-        'LoadWikiTQData',
+        'LoadWikiSQLData',
         'LoadDataLoaders',
       ],
       module_dict: {
+        LoadWikiSQLData: {
+          type: 'LoadWikiSQLData',
+          option: 'default',
+          config: {
+            preprocess: [],
+            path: {
+              train: 'TableQA_data/wikisql/original_split_table_train.arrow',
+              validation: 'TableQA_data/wikisql/original_split_table_validation.arrow',
+              test: 'TableQA_data/wikisql/original_split_table_test.arrow',
+            },
+          },
+        },
         LoadDataLoaders: {
           type: 'LoadDataLoaders',
           option: 'default',
           config: {
             train: [
               {
-                dataset_type: 'WikiTQDataset',
+                dataset_type: 'DPRRAGWikiSQLDataset',
                 split: 'train',
-                use_column: 'wtq_data',
+                use_column: 'wikisql_data',
               },
             ],
             valid: [
               {
-                dataset_type: 'WikiTQDataset',
+                dataset_type: 'DPRRAGWikiSQLDataset',
                 split: 'validation',
-                use_column: 'wtq_data',
+                use_column: 'wikisql_data',
               },
               {
-                dataset_type: 'WikiTQDataset',
+                dataset_type: 'DPRRAGWikiSQLDataset',
                 split: 'test',
-                use_column: 'wtq_data',
+                use_column: 'wikisql_data',
               },
             ],
             test: [
               {
-                dataset_type: 'WikiTQDataset',
-                split: 'validation',
-                use_column: 'wtq_data',
+                dataset_type: 'DPRRAGWikiSQLDataset',
+                split: 'train',
+                use_column: 'wikisql_data',
               },
               {
-                dataset_type: 'WikiTQDataset',
+                dataset_type: 'DPRRAGWikiSQLDataset',
+                split: 'validation',
+                use_column: 'wikisql_data',
+              },
+              {
+                dataset_type: 'DPRRAGWikiSQLDataset',
                 split: 'test',
-                use_column: 'wtq_data',
+                use_column: 'wikisql_data',
               },
             ],
           },
@@ -151,7 +179,7 @@ local override = {
   cuda: 0,
   gpu_device: 0,
   train: {
-    type: 'DPRExecutor',
+    type: 'ITRDPRExecutor',
     epochs: train_epochs,
     batch_size: train_batch_size,
     lr: lr,
@@ -165,7 +193,7 @@ local override = {
       gradient_accumulation_steps: gradient_accumulation_steps,
       warmup_steps: warmup_steps,
       gradient_clipping: gradient_clipping,
-      save_top_k_metric: 'valid/WikiTQDataset.validation/recall_at_5',
+      save_top_k_metric: 'valid/DPRRAGWikiSQLDataset.validation/full_recall_at_5',
     },
   },
   valid: {
@@ -187,7 +215,7 @@ local override = {
     },
   },
   metrics: [
-    { name: 'compute_TQA_DPR_scores' },
+    { name: 'compute_ITR_retrieval_results' },
   ],
 };
 
