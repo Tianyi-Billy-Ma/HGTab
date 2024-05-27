@@ -592,13 +592,23 @@ class ModuleParser:
         batched_num_nodes = data_to_process.pop("num_nodes")
         batched_num_hyperedges = data_to_process.pop("num_hyperedges")
 
-        encoding = self.decoder_tokenizer(
+        node_encoding = self.decoder_tokenizer(
             [
                 sentence
                 for node_sentences in batched_node_sentences
                 for sentence in node_sentences
-            ]
-            + [
+            ],
+            padding="longest",
+            max_length=self.config.data_loader.additional.max_decoder_source_length,
+            truncation=True,
+            return_tensors="pt",
+        )
+        num_nodes = sum(batched_num_nodes)
+        node_input_ids = node_encoding.input_ids
+        node_input_attention_mask = node_encoding.attention_mask
+
+        hyperedge_encoding = self.decoder_tokenizer(
+            [
                 sentence
                 for hyperedge_sentences in batched_hyperedge_sentences
                 for sentence in hyperedge_sentences
@@ -608,12 +618,10 @@ class ModuleParser:
             truncation=True,
             return_tensors="pt",
         )
-        num_nodes, num_hyperedges = sum(batched_num_nodes), sum(batched_num_hyperedges)
-        node_input_ids = encoding.input_ids[:num_nodes]
-        hyperedge_input_ids = encoding.input_ids[num_nodes:]
 
-        node_input_attention_mask = encoding.attention_mask[:num_nodes]
-        hyperedge_input_attention_mask = encoding.attention_mask[num_nodes:]
+        num_hyperedges = sum(batched_num_hyperedges)
+        hyperedge_input_ids = hyperedge_encoding.input_ids
+        hyperedge_input_attention_mask = hyperedge_encoding.attention_mask
 
         batched_edge_index = data_to_process.pop("edge_index")
         edge_index = []

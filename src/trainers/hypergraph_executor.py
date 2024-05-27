@@ -305,6 +305,15 @@ class HGExecutor(BaseExecutor):
 
     def evaluate_outputs(self, outputs, dataloader, dataloader_name, mode="test"):
         # Compute the scores
+        query_embeddings = []
+        question_ids = []
+        for step_output in step_outputs:
+            query_embeddings.append(step_output["query_emb"])
+            question_ids += step_output["question_ids"]
+        query_embeddings = torch.cat(query_embeddings, dim=0)
+
+        n_queries = query_embeddings.shape[0]
+        n_items = 0
 
         return log_dict
 
