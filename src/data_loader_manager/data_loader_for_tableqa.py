@@ -1400,9 +1400,8 @@ class DataLoaderForTableQA(DataLoaderWrapper):
                     print(df.value_counts(subset=["num_negative_tables"]))
 
                 ###### END OF PREPROCESSING ########
-                if module_config.option == "default":
-                    logger.info(f"saving dataset files to {split_file_path}")
-                    dataset.save_to_disk(split_file_path)
+                logger.info(f"saving dataset files to {split_file_path}")
+                dataset.save_to_disk(split_file_path)
 
             self.data.wikisql_data[split] = EasyDict(
                 {
