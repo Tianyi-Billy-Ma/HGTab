@@ -80,6 +80,27 @@ class DPRRAGWikiSQLDataset(WikiSQLDataset):
     def __init__(self, config, dataset_dict):
         super().__init__(config, dataset_dict)
 
+    def __getitem__(self, idx):
+        sample = self.dataset[idx]
+        pos_item = sample["table"]
+        num_neg_samples = self.config.model_config.num_negative_samples
+
+        if len(sample["negative_tables"]) == 0:
+            # in testing mode, we need to use dummy subtables to create the dataset sample
+            # even though we don't use them
+            neg_items = [pos_item] * num_neg_samples
+            # simply copy pos_item here
+        else:
+            if num_neg_samples <= len(sample["negative_tables"]):
+                # sample without replacement
+                neg_items = random.sample(sample["negative_tables"], num_neg_samples)
+            else:
+                neg_items = random.choices(sample["negative_tables"], k=num_neg_samples)
+        sample["pos_item"] = pos_item
+        sample["neg_items"] = neg_items
+
+        return EasyDict(sample)
+
     def collate_fn(self, batch):
         input_modules = self.config.model_config.input_modules.module_list
         decoder_input_modules = (
@@ -89,6 +110,8 @@ class DPRRAGWikiSQLDataset(WikiSQLDataset):
 
         input_data = EasyDict()
         decoder_input_data = EasyDict()
+        pos_item_data = EasyDict()
+        neg_item_data = EasyDict()
         output_data = EasyDict()
 
         #############################
@@ -102,12 +125,26 @@ class DPRRAGWikiSQLDataset(WikiSQLDataset):
             for key, value in parsed_data.items():
                 input_data.setdefault(key, []).append(value)
 
+            # One positive sample + Multiple negative samples
+            ###### For the positive passage, generate input #######
+            new_sample = EasyDict(sample.copy())
+            new_sample.table = sample.pos_item
             parsed_data = self.parse_modules(
                 sample, decoder_input_modules, type="decoder_input"
             )
-
             for key, value in parsed_data.items():
                 decoder_input_data.setdefault(key, []).append(value)
+                pos_item_data.setdefault(key, []).append(value)
+
+            for neg_item in sample.neg_items:
+                new_sample = EasyDict(sample.copy())
+                new_sample.table = neg_item
+                parsed_data = self.parse_modules(
+                    new_sample, decoder_input_modules, type="decoder_input"
+                )
+                for key, value in parsed_data.items():
+                    decoder_input_data.setdefault(key, []).append(value)
+                    neg_item_data.setdefault(key, []).append(value)
 
             parsed_data = self.parse_modules(sample, output_modules, type="output")
             for key, value in parsed_data.items():

@@ -27,7 +27,7 @@ local override = {
   seed: seed,
   model_config: {
     base_model: 'DPR',
-    ModelClass: 'RetrieverDPR',
+    ModelClass: 'RetrieverDPRHG',
     QueryEncoderModelClass: 'DPRQuestionEncoder',
     QueryEncoderConfigClass: 'DPRConfig',
     QueryEncoderModelVersion: 'facebook/dpr-question_encoder-single-nq-base',
@@ -52,7 +52,19 @@ local override = {
       additional_special_tokens: [],
     },
     DECODER_SPECIAL_TOKENS: {
-      additional_special_tokens: ['<HEADER>', '<HEADER_SEP>', '<HEADER_END>', '<ROW>', '<ROW_SEP>', '<ROW_END>'],
+      additional_special_tokens: [
+        '<HEADER>',
+        '<HEADER_SEP>',
+        '<HEADER_END>',
+        '<ROW>',
+        '<ROW_SEP>',
+        '<ROW_END>',
+        '<COL>',
+        '<COL_SEP>',
+        '<COL_END>',
+        '<CELL>',
+        '<CELL_END>',
+      ],
     },
     input_modules: {
       module_list: [
@@ -87,13 +99,13 @@ local override = {
             col_sep: '<COL_SEP>',
             col_end: '<COL_END>',
             cell_start: '<CELL>',
-            cell_sep: '<CELL_SEP>',
             cell_end: '<CELL_END>',
           },
         },
       ],
       postprocess_module_list: [
-        { type: 'PostProcessDecoderInputTokenization', option: 'default' },
+        { type: 'PostProcessDecoderInputHGTokenization', option: 'default' },
+        { type: 'PostProcessHG', option: 'default' },
       ],
     },
     output_modules: {
@@ -123,11 +135,11 @@ local override = {
           type: 'LoadWikiSQLData',
           option: 'default',
           config: {
-            preprocess: [],
+            preprocess: ['create_table_with_neg_samples'],
             path: {
-              train: 'TableQA_data/wikisql/original_split_table_train.arrow',
-              validation: 'TableQA_data/wikisql/original_split_table_validation.arrow',
-              test: 'TableQA_data/wikisql/original_split_table_test.arrow',
+              train: 'TableQA_data/wikisql/processed_create_table_with_neg_samples_split_table_train.arrow',
+              validation: 'TableQA_data/wikisql/processed_create_table_with_neg_samples_split_table_validation.arrow',
+              test: 'TableQA_data/wikisql/processed_create_table_with_neg_samples_split_table_test.arrow',
             },
           },
         },
@@ -179,7 +191,7 @@ local override = {
   cuda: 0,
   gpu_device: 0,
   train: {
-    type: 'ITRDPRExecutor',
+    type: 'HGExecutor',
     epochs: train_epochs,
     batch_size: train_batch_size,
     lr: lr,

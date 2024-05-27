@@ -574,6 +574,18 @@ class DataLoaderForTableQA(DataLoaderWrapper):
                     print(df.value_counts(subset=["num_negative_sub_tables"]))
                     print(df.value_counts(subset=["num_sub_tables"]))
 
+                if (
+                    "create_table_with_pos_and_neg_samples"
+                    in module_config.config.preprocess
+                ):
+
+                    def create_table_with_pos_and_neg_samples(example):
+                        table = example["table"]
+                        positive_tables = []
+                        negative_tables = []
+
+                dataset = load_dataset("wikitablequestions", split=split)
+
                 dataset.save_to_disk(split_file_path)
 
             ###### END OF PREPROCESSING ########
@@ -1353,9 +1365,44 @@ class DataLoaderForTableQA(DataLoaderWrapper):
                 ):
                     dataset = dataset.filter(lambda x: x["num_positive_sub_tables"] > 0)
 
+                if "create_table_with_neg_samples" in module_config.config.preprocess:
+                    unique_tables = {
+                        example["table"]["name"]: example["table"]
+                        for example in dataset
+                    }
+
+                    def create_table_with_neg_samples(example):
+                        table_name = example["table"]["name"]
+                        num_negative_tables = (
+                            self.config.model_config.num_negative_samples
+                        )
+                        negative_tables = random.sample(
+                            [
+                                table
+                                for name, table in unique_tables.items()
+                                if name != table_name
+                            ],
+                            num_negative_tables,
+                        )
+                        example["negative_tables"] = negative_tables
+                        example["num_negative_tables"] = len(negative_tables)
+                        return example
+
+                    dataset = dataset.map(
+                        create_table_with_neg_samples,
+                        batched=False,
+                        num_proc=4,
+                        desc="create_table_with_neg_samples",
+                    )
+
+                    df = dataset.to_pandas()
+
+                    print(df.value_counts(subset=["num_negative_tables"]))
+
                 ###### END OF PREPROCESSING ########
-                logger.info(f"saving dataset files to {split_file_path}")
-                dataset.save_to_disk(split_file_path)
+                if module_config.option == "default":
+                    logger.info(f"saving dataset files to {split_file_path}")
+                    dataset.save_to_disk(split_file_path)
 
             self.data.wikisql_data[split] = EasyDict(
                 {
@@ -1947,6 +1994,101 @@ class DataLoaderForTableQA(DataLoaderWrapper):
             )
 
     def LoadDataLoaders(self, module_config):
+        """
+        Load all data loaders.
+        {
+          "type": "LoadDataLoaders", "option": "default",
+          "config": {
+            "train": [
+                {
+                    "dataset_type": "WikiTQDataset",
+                    "split": "train",
+                    "use_column": "wtq_data",
+                },
+            ],
+            "valid": [
+                {
+                    "dataset_type": "WikiTQDataset",
+                    "split": "valid",
+                    "use_column": "wtq_data",
+                },
+            ],
+            "test": [
+                {
+                    "dataset_type": "WikiTQDataset",
+                    "split": "test",
+                    "use_column": "wtq_data",
+                },
+            ],
+          }
+        }
+        """
+
+        for mode in module_config.config.keys():
+            for data_config in module_config.config[mode]:
+                use_column = data_config.use_column
+                use_split = data_config.split
+                dataset_type = data_config.dataset_type
+                dataset_dict = {
+                    "data": self.data[use_column][use_split],
+                    "tokenizer": self.tokenizer,
+                    "decoder_tokenizer": self.decoder_tokenizer,
+                    "feature_extractor": self.feature_extractor,
+                    "mode": mode,
+                }
+                dataset = globals()[dataset_type](self.config, dataset_dict)
+
+                # # Save data to src/tgt file format
+                # save_path_src = os.path.join(
+                #     self.config.DATA_FOLDER, f"{use_split}.source"
+                # )
+                # save_path_tgt = os.path.join(
+                #     self.config.DATA_FOLDER, f"{use_split}.target"
+                # )
+                # source = []
+                # target = []
+                # for i in dataset:
+                #     source.append(i['question'])
+                #     concat_answers = [", ".join(i['answers'])] + [", ".join(ans) for ans in i.get('alternative_answers', [])]
+                #     target.append(
+                #         ("||".join(concat_answers) + "|||" + i['pos_item_id']).replace("\n", " ")
+                #     )
+
+                # with open(save_path_src, 'w') as f:
+                #     f.write('\n'.join(source) + '\n')
+                # with open(save_path_tgt, 'w') as f:
+                #     f.write('\n'.join(target) + '\n')
+                # print(f"done saving files {save_path_src} and {save_path_tgt}.")
+                # input()
+
+                if mode == "train":
+                    sampler = RandomSampler(dataset)
+                else:
+                    sampler = SequentialSampler(dataset)
+
+                data_loader = DataLoader(
+                    dataset,
+                    sampler=sampler,
+                    batch_size=self.config[mode].batch_size,
+                    collate_fn=dataset.collate_fn,
+                    # num_workers=2,
+                )
+                # if mode == 'train':
+                # for i in data_loader:
+                #     pprint(i)
+                #     input('done!')
+                #     break
+
+                # self.datasets[mode][f"{mode}/{dataset_type}.{use_split}"] = dataset
+                self.data_loaders[mode][f"{mode}/{dataset_type}.{use_split}"] = (
+                    data_loader
+                )
+
+                logger.info(
+                    f"[Data Statistics]: {mode} data loader: {mode}/{dataset_type}.{use_split} {len(data_loader)}"
+                )
+
+    def LoadHGLoaders(self, module_config):
         """
         Load all data loaders.
         {

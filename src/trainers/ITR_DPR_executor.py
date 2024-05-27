@@ -290,7 +290,7 @@ class ITRDPRExecutor(BaseExecutor):
         query_emb = self.model.generate_query_embeddings(**test_batch)
 
         data_to_return = {
-            "btach_idx": batch_idx,
+            "batch_idx": batch_idx,
             "query_emb": query_emb,
             "question_ids": sample_batched["question_ids"],
             "answers": sample_batched["answers"],
