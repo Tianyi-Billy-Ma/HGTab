@@ -307,3 +307,28 @@ class HGExecutor(BaseExecutor):
         # Compute the scores
 
         return log_dict
+
+    def save_HF_model(self):
+        if self.global_rank != 0:
+            logger.info("global rank is not 0, skip saving models")
+            return
+        logger.info("Saving model in the Huggingface format...")
+        path_save_model = os.path.join(
+            self.config.saved_model_path, "step_{}".format(self.global_step)
+        )
+        self.model.query_encoder.save_pretrained(
+            os.path.join(path_save_model, "query_encoder")
+        )
+        self.data_loader.tokenizer.save_pretrained(
+            os.path.join(path_save_model, "query_encoder_tokenizer")
+        )
+        self.model.item_encoder.save_pretrained(
+            os.path.join(path_save_model, "item_encoder")
+        )
+        self.data_loader.decoder_tokenizer.save_pretrained(
+            os.path.join(path_save_model, "item_encoder_tokenizer")
+        )
+        self.model.hypergraph_encoder.save_pretrained(
+            os.path.join(path_save_model, "hypergraph_encoder")
+        )
+        logger.info("Model has been saved to {}".format(path_save_model))
