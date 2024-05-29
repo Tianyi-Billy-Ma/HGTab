@@ -46,12 +46,12 @@ class ModuleParser:
                 [[he_idx * num_cols + col, he_idx] for col in range(num_cols)]
             )
             # Build row hyperedge sentence
+            row_sentence = [module.separation_tokens.row_start]
             for col in range(num_cols):
-                row_sentence = [module.separation_tokens.row_start]
-                row_sentence += [table.rows[he_idx][col]] + [
-                    module.separation_tokens.row_sep
-                ]
-                row_sentence += [module.separation_tokens.row_end]
+                row_sentence += [table.rows[he_idx][col]]
+                if col < num_cols - 1:
+                    row_sentence += [module.separation_tokens.row_sep]
+            row_sentence += [module.separation_tokens.row_end]
             hyperedge_sentences.append(" ".join(row_sentence).strip())
 
         for he_idx in range(num_cols):
@@ -61,13 +61,13 @@ class ModuleParser:
             )
 
             # Build row hyperedge sentence
+            col_sentence = [module.separation_tokens.col_start]
             for row in range(num_rows):
-                row_sentence = [module.separation_tokens.col_start]
-                row_sentence += [table.rows[row][he_idx]] + [
-                    module.separation_tokens.col_sep
-                ]
-                row_sentence += [module.separation_tokens.col_end]
-            hyperedge_sentences.append(" ".join(row_sentence).strip())
+                col_sentence += [table.rows[row][he_idx]]
+                if row < num_rows - 1:
+                    col_sentence += [module.separation_tokens.col_sep]
+            col_sentence += [module.separation_tokens.col_end]
+            hyperedge_sentences.append(" ".join(col_sentence).strip())
 
         for row in range(num_rows):
             for col in range(num_cols):
@@ -585,12 +585,9 @@ class ModuleParser:
     ) -> EasyDict:
         assert "node_sentences" in data_to_process.keys()
         assert "hyperedge_sentences" in data_to_process.keys()
-        assert "edge_index" in data_to_process.keys()
 
         batched_node_sentences = data_to_process.pop("node_sentences")
         batched_hyperedge_sentences = data_to_process.pop("hyperedge_sentences")
-        batched_num_nodes = data_to_process.pop("num_nodes")
-        batched_num_hyperedges = data_to_process.pop("num_hyperedges")
 
         node_encoding = self.decoder_tokenizer(
             [
@@ -603,7 +600,7 @@ class ModuleParser:
             truncation=True,
             return_tensors="pt",
         )
-        num_nodes = sum(batched_num_nodes)
+
         node_input_ids = node_encoding.input_ids
         node_input_attention_mask = node_encoding.attention_mask
 
@@ -619,11 +616,28 @@ class ModuleParser:
             return_tensors="pt",
         )
 
-        num_hyperedges = sum(batched_num_hyperedges)
         hyperedge_input_ids = hyperedge_encoding.input_ids
         hyperedge_input_attention_mask = hyperedge_encoding.attention_mask
 
+        data_to_process.update(
+            {
+                "node_input_ids": node_input_ids,
+                "hyperedge_input_ids": hyperedge_input_ids,
+                "node_input_attention_mask": node_input_attention_mask,
+                "hyperedge_input_attention_mask": hyperedge_input_attention_mask,
+            }
+        )
+        return data_to_process
+
+    def PostProcessHG(self, data_to_process: EasyDict) -> EasyDict:
+        assert "edge_index" in data_to_process.keys()
+
         batched_edge_index = data_to_process.pop("edge_index")
+        batched_num_nodes = data_to_process.pop("num_nodes")
+        batched_num_hyperedges = data_to_process.pop("num_hyperedges")
+        num_nodes = sum(batched_num_nodes)
+        num_hyperedges = sum(batched_num_hyperedges)
+
         edge_index = []
         for idx, edge_index_i in enumerate(batched_edge_index):
             edge_index_i[0, :] += sum(batched_num_nodes[:idx])
@@ -636,23 +650,7 @@ class ModuleParser:
             sum(batched_num_hyperedges[: idx + 1]) - 1
             for idx in range(len(batched_num_hyperedges))
         ]
-        data_to_process.update(
-            {
-                "node_input_ids": node_input_ids,
-                "hyperedge_input_ids": hyperedge_input_ids,
-                "node_input_attention_mask": node_input_attention_mask,
-                "hyperedge_input_attention_mask": hyperedge_input_attention_mask,
-                "edge_index": edge_index,
-                "table_index": table_index,
-            }
-        )
-        return data_to_process
 
-    def PostProcessHG(self, data_to_process: EasyDict) -> EasyDict:
-        assert "edge_index" in data_to_process.keys()
-
-        edge_index = data_to_process.pop("edge_index")
-        table_index = data_to_process.pop("table_index")
         edge_index = torch.LongTensor(edge_index)
         table_index = torch.LongTensor(table_index)
         data_to_process.update(
@@ -767,6 +765,7 @@ class ModuleParser:
         self,
         processed_batch_data: EasyDict,
         postprocess_modules: Optional[EasyDict] = None,
+        type: Optional[str] = "default",
     ) -> EasyDict:
         """
         Post-processing the processed data of the whole batch

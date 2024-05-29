@@ -175,11 +175,19 @@ class HGExecutor(BaseExecutor):
         train_batch = {
             "input_ids": sample_batched["input_ids"].to(self.device),
             "attention_mask": sample_batched["attention_mask"].to(self.device),
-            "labels": sample_batched["labels"].to(self.device),
-            "item_input_ids": sample_batched["decoder_input_ids"].to(self.device),
-            "item_attention_mask": sample_batched["decoder_input_attention_mask"].to(
+            "node_input_ids": sample_batched["node_input_ids"].to(self.device),
+            "node_input_attention_mask": sample_batched["node_input_attention_mask"].to(
                 self.device
             ),
+            "hyperedge_input_ids": sample_batched["hyperedge_input_ids"].to(
+                self.device
+            ),
+            "hyperedge_input_attention_mask": sample_batched[
+                "hyperedge_input_attention_mask"
+            ].to(self.device),
+            "labels": sample_batched["labels"].to(self.device),
+            "edge_index": sample_batched["edge_index"].to(self.device),
+            "table_index": sample_batched["table_index"].to(self.device),
         }
 
         forward_results = self.model(**train_batch)
@@ -279,43 +287,215 @@ class HGExecutor(BaseExecutor):
         }
         query_emb = self.model.generate_query_embeddings(**test_query_batch)
 
-        test_item_batch = {
-            "node_input_ids": sample_batched["node_input_ids"].to(self.device),
-            "node_input_attention_mask": sample_batched["node_input_attention_mask"].to(
-                self.device
-            ),
-            "hyperedge_input_ids": sample_batched["hyperedge_input_ids"].to(
-                self.device
-            ),
-            "hyperedge_input__attention_mask": sample_batched[
-                "hyperedge_input_attention_mask"
-            ].to(self.device),
-            "edge_index": sample_batched["edge_index"].to(self.device),
-            "table_index": sample_batched["table_index"].to(self.device),
-        }
-        item_emb = self.model.generate_item_embeddings(**test_item_batch)
+        # test_item_batch = {
+        #     "node_input_ids": sample_batched["node_input_ids"].to(self.device),
+        #     "node_input_attention_mask": sample_batched["node_input_attention_mask"].to(
+        #         self.device
+        #     ),
+        #     "hyperedge_input_ids": sample_batched["hyperedge_input_ids"].to(
+        #         self.device
+        #     ),
+        #     "hyperedge_input__attention_mask": sample_batched[
+        #         "hyperedge_input_attention_mask"
+        #     ].to(self.device),
+        #     "edge_index": sample_batched["edge_index"].to(self.device),
+        #     "table_index": sample_batched["table_index"].to(self.device),
+        # }
+        # item_emb = self.model.generate_item_embeddings(**test_item_batch)
+
         data_to_return = {
             "batch_idx": batch_idx,
             "query_emb": query_emb,
-            "item_emb": item_emb,
+            "tables": sample_batched["tables"],
             "question_ids": sample_batched["question_ids"],
             "answers": sample_batched["answers"],
         }
         return data_to_return
 
-    def evaluate_outputs(self, outputs, dataloader, dataloader_name, mode="test"):
+    def evaluate_outputs(
+        self, step_outputs, current_data_loader, dataloader_name, mode="test"
+    ):
         # Compute the scores
         query_embeddings = []
         question_ids = []
+        tables = []
+        question_id_to_table_index = {}
+        question_id_to_query_index = {}
+
         for step_output in step_outputs:
             query_embeddings.append(step_output["query_emb"])
+
+            for question_id, table_list in zip(
+                step_output["question_ids"], step_output["tables"]
+            ):
+                question_id_to_table_index[question_id] = (
+                    len(tables),
+                    len(tables) + len(table_list),
+                )
+                tables += table_list
+                question_id_to_query_index[question_id] = len(
+                    question_id_to_query_index
+                )
+
             question_ids += step_output["question_ids"]
+
         query_embeddings = torch.cat(query_embeddings, dim=0)
 
+        ##################################
+        ##    Generate embeds for items ##
+        ##################################
+
         n_queries = query_embeddings.shape[0]
-        n_items = 0
+        n_items = len(tables)
+
+        i_batch_size = self.config[mode].batch_size
+
+        n_item_batches = n_items // i_batch_size + 1
+
+        rate_batch = np.zeros(shape=(n_queries, n_items))
+
+        logger.info(f"rate_batch shape: {rate_batch.shape}")
+
+        decoder_input_modules = (
+            self.config.model_config.decoder_input_modules.module_list
+        )
+
+        table_contents = []
+        for table in tables:
+            sample = EasyDict(table=table)
+            parsed_data = current_data_loader.dataset.parse_modules(
+                sample, decoder_input_modules, type="decoder_input"
+            )
+            table_contents.append(parsed_data)
+
+        assert len(table_contents) == len(tables)
+
+        logger.info(f"There are {n_queries} queries.")
+        logger.info(f"Generating embeddings for items; there are {n_items} items.")
+
+        decoder_postprocess_modules = (
+            self.config.model_config.decoder_input_modules.postprocess_module_list
+        )
+
+        i_count = 0
+        item_embeddings = []
+        for i_batch_id in tqdm(range(n_item_batches)):
+            i_start = i_batch_id * i_batch_size
+            i_end = min((i_batch_id + 1) * i_batch_size, n_items)
+            if i_end - i_start == 0:
+                break
+            table_to_postprocess = table_contents[i_start:i_end]
+            sample = EasyDict(
+                node_sentences=[
+                    table["node_sentences"] for table in table_to_postprocess
+                ],
+                hyperedge_sentences=[
+                    table["hyperedge_sentences"] for table in table_to_postprocess
+                ],
+                edge_index=[table["edge_index"] for table in table_to_postprocess],
+                num_nodes=[table["num_nodes"] for table in table_to_postprocess],
+                num_hyperedges=[
+                    table["num_hyperedges"] for table in table_to_postprocess
+                ],
+            )
+            postprocessed_data = current_data_loader.dataset.post_processing(
+                sample, decoder_postprocess_modules, type="decoder_input"
+            )
+            test_batch = EasyDict(
+                {k: v.to(self.device) for k, v in postprocessed_data.items()}
+            )
+
+            item_emb = self.model.generate_item_embeddings(**test_batch)
+            item_embeddings.append(item_emb.cpu().detach())
+
+            # n_queries x batch_size
+            i_rate_batch = torch.matmul(query_embeddings, item_emb.t()).detach().cpu()
+
+            rate_batch[:, i_start:i_end] = i_rate_batch
+            i_count += i_rate_batch.shape[1]
+
+        assert i_count == n_items
+        item_embeddings = torch.cat(item_embeddings, dim=0)
+        # print(item_embeddings.shape)
+
+        Ks = self.config.model_config.Ks
+        # Log results
+        columns = ["question_id"] + ["p_{}".format(i) for i in range(max(Ks))]
+        test_table = wandb.Table(columns=columns)
+
+        batch_results = []
+
+        # for question_id, start_end_index in tqdm(question_id_to_table_index.item()):
+        for question_id, start_end_index in question_id_to_table_index.items():
+            start, end = start_end_index
+            query_index = question_id_to_query_index[question_id]
+            query_table_ratings = rate_batch[query_index, start:end]
+            query_tables = tables[start:end]
+            zipped_query_tables = [
+                (query_table, query_table_rating)
+                for query_table, query_table_rating in zip(
+                    query_tables, query_table_ratings
+                )
+            ]
+            zipped_query_tables.sort(key=lambda x: x[1], reverse=True)
+            batch_results.append(
+                {
+                    "question_id": question_id,
+                    "retrieved_tables_sorted": zipped_query_tables,
+                }
+            )
+            table_entry = [question_id]
+
+            for i in range(max(Ks)):
+                if i < len(zipped_query_tables):
+                    table, rating = zipped_query_tables[i]
+                    table_entry += [f"{table['id']}, {table['is_gold']}, {rating}"]
+                else:
+                    table_entry += [f""]
+
+            test_table.add_data(*table_entry)
+
+        if self.trainer.state.stage == "test":
+            save_path = os.path.join(
+                self.config.results_path,
+                "step_{}".format(self.global_step),
+                dataset_name.replace("/", "."),
+            )
+            create_dirs([save_path])
+            save_path = os.path.join(save_path, f"static_index_{self.global_rank}.pkl")
+            to_save_data = dict(
+                query_embeddings=query_embeddings.cpu().detach(),
+                item_embeddings=item_embeddings,
+                question_ids=question_ids,
+                tables=tables,
+                question_id_to_table_index=question_id_to_table_index,
+                question_id_to_query_index=question_id_to_query_index,
+            )
+            logger.info(f"saving embedding files into {save_path}")
+
+            with open(save_path, "wb") as f:
+                pickle.dump(to_save_data, f)
+
+        ##############################
+        ##    Compute Metrics       ##
+        ##############################
+
+        data_used_for_metrics = EasyDict(
+            mode=mode,
+            epoch=self.current_epoch,
+            batch_retrieval_results=batch_results,
+        )
+
+        log_dict = self.compute_metrics(data_used_for_metrics)
+        log_dict.artifacts.test_table = test_table
 
         return log_dict
+
+    def logging_results(self, log_dict, prefix="test"):
+        pass
+
+    def forward(self, **kwargs):
+        return self.model(**kwargs)
 
     def save_HF_model(self):
         if self.global_rank != 0:

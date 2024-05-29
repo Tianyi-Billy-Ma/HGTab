@@ -180,9 +180,16 @@ class DPRRAGWikiSQLDataset(WikiSQLDataset):
         question = [sample.question for sample in batch]
         answers = [sample.answers for sample in batch]
 
+        tables = []
+        for sample in batch:
+            table_list = []
+            for table in [sample.table] + sample.negative_tables:
+                table_list.append(dict(table))
+            tables.append(table_list)
         batched_data = {
             "question_ids": question_ids,
             "questions": question,
+            "tables": tables,
             "answers": answers,
         }
         batched_data.update(input_data)

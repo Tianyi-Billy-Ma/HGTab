@@ -227,7 +227,7 @@ local override = {
     },
   },
   metrics: [
-    { name: 'compute_ITR_retrieval_results' },
+    { name: 'compute_TQA_retrieval_results' },
   ],
 };
 

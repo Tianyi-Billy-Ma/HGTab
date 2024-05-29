@@ -100,7 +100,10 @@ class DataLoaderForTableQA(DataLoaderWrapper):
 
             is_training = split in ["train"]
 
-            if os.path.exists(split_file_path):
+            if (
+                os.path.exists(split_file_path)
+                and module_config.force_reload == "False"
+            ):
                 dataset = load_from_disk(split_file_path)
             else:
                 if not datasets:
@@ -637,7 +640,7 @@ class DataLoaderForTableQA(DataLoaderWrapper):
 
             is_training = split in ["train"]
 
-            if os.path.exists(split_file_path):
+            if os.path.exists(split_file_path) and module_config.option == "default":
                 dataset = load_from_disk(split_file_path)
             else:
                 if not datasets:
@@ -1370,6 +1373,8 @@ class DataLoaderForTableQA(DataLoaderWrapper):
                         example["table"]["name"]: example["table"]
                         for example in dataset
                     }
+                    for table_name in unique_tables.keys():
+                        unique_tables[table_name]["is_gold"] = False
 
                     def create_table_with_neg_samples(example):
                         table_name = example["table"]["name"]
@@ -1384,8 +1389,10 @@ class DataLoaderForTableQA(DataLoaderWrapper):
                             ],
                             num_negative_tables,
                         )
+                        example["table"]["is_gold"] = True
                         example["negative_tables"] = negative_tables
                         example["num_negative_tables"] = len(negative_tables)
+
                         return example
 
                     dataset = dataset.map(

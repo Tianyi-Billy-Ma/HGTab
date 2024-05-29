@@ -80,6 +80,7 @@ class AllSet(pl.LightningModule):
             .T
         )
         edge_index = torch.cat([edge_index, self_loop], dim=1)
+        emb_E = torch.cat([emb_E, emb_V], dim=0)
 
         for layer in self.layers:
             emb_V, emb_E = layer(emb_V, emb_E, edge_index)
@@ -161,7 +162,6 @@ class RetrieverDPRHG(pl.LightningModule):
         labels=None,
         edge_index=None,
         table_index=None,
-        span_labels=None,
         **kwargs,
     ):
         query_outputs = self.query_encoder(
@@ -229,7 +229,7 @@ class RetrieverDPRHG(pl.LightningModule):
         node_input_ids=None,
         node_input_attention_mask=None,
         hyperedge_input_ids=None,
-        hyperedge_input__attention_mask=None,
+        hyperedge_input_attention_mask=None,
         edge_index=None,
         table_index=None,
     ):
@@ -238,7 +238,7 @@ class RetrieverDPRHG(pl.LightningModule):
         )
         hyperedge_outputs = self.item_encoder(
             input_ids=hyperedge_input_ids,
-            attention_mask=hyperedge_input__attention_mask,
+            attention_mask=hyperedge_input_attention_mask,
         )
         node_embeddings = node_outputs.pooler_output
         hyperedge_embeddings = hyperedge_outputs.pooler_output
