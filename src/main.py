@@ -643,6 +643,7 @@ if __name__ == "__main__":
         "test.batch_size=4",
         "data_loader.dummy_dataloader=0",
         "train.additional.label_smoothing_factor=0.1",
+        "reset=1",
     ]
 
     # The code provided is a Python script with a comment `# main(dpr_sql)`. This comment suggests

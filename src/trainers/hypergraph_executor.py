@@ -492,7 +492,36 @@ class HGExecutor(BaseExecutor):
         return log_dict
 
     def logging_results(self, log_dict, prefix="test"):
-        pass
+        metrics_to_log = EasyDict()
+        wandb_artifacts_to_log = dict()
+        for metric, value in log_dict.items():
+            metrics_to_log[f"{prefix}/{metric}"] = value
+        metrics_to_log[f"{prefix}/epoch"] = self.current_epoch
+        wandb_artifacts_to_log.update(
+            {
+                f"predictions/step_{self.global_step}_MODE({self.config.mode})_SET({prefix})_rank({self.global_rank})": log_dict.artifacts[
+                    "test_table"
+                ]
+            }
+        )
+        pprint(metrics_to_log)
+        pprint(wandb_artifacts_to_log)
+
+        logger.info(
+            f"Evaluation results [{self.trainer.state.stage}]: {metrics_to_log}"
+        )
+
+        # Add to loggers
+        for metric, value in metrics_to_log.items():
+            if type(value) in [float, int, np.float64]:
+                self.log(metric, float(value), logger=True, sync_dist=True)
+            else:
+                logger.info(f"{metric} is not a type that can be logged, skippped.")
+
+        # Call wandb to log artifacts; remember to use commit=False so that the data will be logged
+        #       with other metrics later.
+        if self.config.args.log_prediction_tables:
+            self.wandb_logger.experiment.log(wandb_artifacts_to_log, commit=False)
 
     def forward(self, **kwargs):
         return self.model(**kwargs)
