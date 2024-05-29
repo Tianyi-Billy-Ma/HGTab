@@ -86,7 +86,7 @@ def parse_args(args_list=None):
 
     # ===== Args for pl===== #
     arg_parser.add_argument("--accelerator", type=str, default="gpu")
-    arg_parser.add_argument("--device", type=int, default=1)
+    arg_parser.add_argument("--devices", type=int, default=1)
     arg_parser.add_argument("--num_sanity_val_steps", type=int, default=2)
     arg_parser.add_argument("--limit_train_batches", default=None)
     arg_parser.add_argument("--limit_val_batches", default=None)

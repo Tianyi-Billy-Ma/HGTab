@@ -97,8 +97,8 @@ local default_cache_folder = 'cache';
       },
     },
   },
-  cuda: 0,
-  gpu_device: 0,
+  // cuda: 0,
+  // gpu_device: 0,
   train: {
     type: 'TAPASExecutor',
     epochs: train_epochs,

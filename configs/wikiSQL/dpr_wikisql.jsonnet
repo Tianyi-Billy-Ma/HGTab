@@ -188,8 +188,8 @@ local override = {
       },
     },
   },
-  cuda: 0,
-  gpu_device: 0,
+  // cuda: 0,
+  // gpu_device: 0,
   train: {
     type: 'HGExecutor',
     epochs: train_epochs,
