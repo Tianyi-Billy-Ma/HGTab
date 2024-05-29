@@ -13,6 +13,48 @@ from torch_scatter import scatter
 from torch.nn.functional import gelu
 
 
+class EmbeddingLayer(pl.LightningModule):
+    def __init__(self, config):
+        super().__init__()
+        self.hidden_dropout_prob = config.hidden_dropout_prob
+        self.vocab_size = config.vocab_size
+        self.hidden_size = config.hidden_size
+
+        self.embedding = nn.Embedding(self.vocab_size, self.hidden_size, padding_idx=0)
+        self.LayerNorm = nn.LayerNorm(self.hidden_size, eps=1e-12)
+        self.dropout = nn.Dropout(self.hidden_dropout_prob)
+
+    def resize_token_embeddings(self, vocab_size):
+        old_vocab_size = self.vocab_size
+        old_embeddings = self.embedding
+
+        new_vocab_size = vocab_size
+
+        new_embeddings = nn.Embedding(
+            new_vocab_size,
+            self.hidden_size,
+            device=old_embeddings.weight.device,
+            dtype=old_embeddings.weight.dtype,
+        )
+
+        n = min(old_vocab_size, new_vocab_size)
+        new_embeddings.weight.data[:n, :] = old_embeddings.weight.data[:n, :]
+
+        self.embedding = new_embeddings
+        self.vocab_size = new_vocab_size
+
+    def forward(self, input_ids, attention_mask=None):
+        embeddings = self.embedding(input_ids)
+        pooler_output = torch.div(
+            torch.sum(embeddings, dim=1),
+            torch.count_nonzero(input_ids, dim=1).unsqueeze(-1),
+        )
+        pooler_output = self.LayerNorm(pooler_output)
+        pooler_output = self.dropout(pooler_output)
+
+        return EasyDict({"pooler_output": pooler_output})
+
+
 class HGLayer(pl.LightningModule):
     def __init__(self, config):
         super().__init__()
@@ -113,20 +155,21 @@ class RetrieverDPRHG(pl.LightningModule):
         )
 
         if self.SEP_ENCODER:
-            ItemEncoderModelClass = globals()[
-                self.config.model_config.ItemEncoderModelClass
-            ]
-
+            # ItemEncoderModelClass = globals()[
+            #     self.config.model_config.ItemEncoderModelClass
+            # ]
             ItemEncoderConfigClass = globals()[
                 self.config.model_config.ItemEncoderConfigClass
             ]
             item_model_config = ItemEncoderConfigClass.from_pretrained(
                 self.config.model_config.ItemEncoderModelVersion
             )
-            self.item_encoder = ItemEncoderModelClass.from_pretrained(
-                self.config.model_config.ItemEncoderModelVersion,
-                config=item_model_config,
-            )
+            # self.item_encoder = ItemEncoderModelClass.from_pretrained(
+            #     self.config.model_config.ItemEncoderModelVersion,
+            #     config=item_model_config,
+            # )
+
+            self.item_encoder = EmbeddingLayer(item_model_config)
         else:
             # Use the same model for query and item encoders
             item_model_config = query_model_config

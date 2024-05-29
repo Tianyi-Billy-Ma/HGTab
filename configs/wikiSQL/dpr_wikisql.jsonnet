@@ -121,8 +121,8 @@ local override = {
     type: 'DataLoaderForTableQA',
     dummy_dataloader: 0,
     additional: {
-      max_source_length: 512,
-      max_decoder_source_length: 512,
+      max_source_length: 128,
+      max_decoder_source_length: 128,
       max_target_length: 128,
     },
     dataset_modules: {
