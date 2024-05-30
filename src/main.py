@@ -524,7 +524,7 @@ if __name__ == "__main__":
         "--accelerator",
         "gpu",
         "--device",
-        "4",
+        "1",
         "--strategy",
         "ddp",
         "--num_sanity_val_steps",
@@ -650,5 +650,9 @@ if __name__ == "__main__":
     # that there might be a function named `main` that takes a parameter `dpr_sql`. However, without
     # seeing the actual implementation of the `main` function or any other code in the script, it is
     # not possible to determine the exact functionality of the code.
+    # The code you provided is a Python script with a comment `# main(dpr_ITR_mix_sql)`. This comment
+    # suggests that there might be a function named `main` that takes `dpr_ITR_mix_sql` as an
+    # argument. However, the actual implementation of the `main` function or any other code logic is
+    # not shown in the snippet you provided.
     main(dpr_sql)
     # main(dpr_ITR_mix_sql)

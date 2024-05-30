@@ -205,7 +205,7 @@ local override = {
       gradient_accumulation_steps: gradient_accumulation_steps,
       warmup_steps: warmup_steps,
       gradient_clipping: gradient_clipping,
-      save_top_k_metric: 'valid/DPRRAGWikiSQLDataset.validation/full_recall_at_5',
+      save_top_k_metric: 'valid/DPRRAGWikiSQLDataset.validation/recall_at_5',
     },
   },
   valid: {

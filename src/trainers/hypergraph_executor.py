@@ -494,7 +494,7 @@ class HGExecutor(BaseExecutor):
     def logging_results(self, log_dict, prefix="test"):
         metrics_to_log = EasyDict()
         wandb_artifacts_to_log = dict()
-        for metric, value in log_dict.items():
+        for metric, value in log_dict.metrics.items():
             metrics_to_log[f"{prefix}/{metric}"] = value
         metrics_to_log[f"{prefix}/epoch"] = self.current_epoch
         wandb_artifacts_to_log.update(
@@ -510,6 +510,9 @@ class HGExecutor(BaseExecutor):
         logger.info(
             f"Evaluation results [{self.trainer.state.stage}]: {metrics_to_log}"
         )
+        if self.trainer.state.stage in ["sanity_check"]:
+            logging.warning("Sanity check mode, not saving to loggers.")
+            return
 
         # Add to loggers
         for metric, value in metrics_to_log.items():

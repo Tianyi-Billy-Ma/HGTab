@@ -906,7 +906,7 @@ class MetricsProcessor:
         result["full_recall"] = result["full_recall"] / count
 
         log_result = EasyDict()
-        for metrics_name, np_array in result.items():
+        for metrics_name, np_array in result.itzems():
             for index, K in enumerate(Ks):
                 log_result[f"{metrics_name}_at_{K}"] = float(np_array[index])
 
