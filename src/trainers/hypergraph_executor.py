@@ -254,7 +254,7 @@ class HGExecutor(BaseExecutor):
         self.test_step_outputs = [[]] * len(self.test_dataloader())
 
     def test_step(self, sample_batched, batch_idx, dataloader_idx=0):
-        return self._compute_embeddings_step(sample_batched, batch_idx)
+        return self._compute_query_embeddings_step(sample_batched, batch_idx)
 
     def on_test_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0):
         self.test_step_outputs[dataloader_idx].append(outputs)
@@ -496,6 +496,8 @@ class HGExecutor(BaseExecutor):
         wandb_artifacts_to_log = dict()
         for metric, value in log_dict.metrics.items():
             metrics_to_log[f"{prefix}/{metric}"] = value
+
+        # include other artifacts / metadata
         metrics_to_log[f"{prefix}/epoch"] = self.current_epoch
         wandb_artifacts_to_log.update(
             {

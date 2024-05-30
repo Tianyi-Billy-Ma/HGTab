@@ -100,10 +100,7 @@ class DataLoaderForTableQA(DataLoaderWrapper):
 
             is_training = split in ["train"]
 
-            if (
-                os.path.exists(split_file_path)
-                and module_config.force_reload == "False"
-            ):
+            if os.path.exists(split_file_path) and module_config.option == "default":
                 dataset = load_from_disk(split_file_path)
             else:
                 if not datasets:
@@ -577,17 +574,45 @@ class DataLoaderForTableQA(DataLoaderWrapper):
                     print(df.value_counts(subset=["num_negative_sub_tables"]))
                     print(df.value_counts(subset=["num_sub_tables"]))
 
-                if (
-                    "create_table_with_pos_and_neg_samples"
-                    in module_config.config.preprocess
-                ):
+                if "create_table_with_neg_samples" in module_config.config.preprocess:
+                    unique_tables = {
+                        example["table"]["name"]: example["table"]
+                        for example in dataset
+                    }
+                    for table_name in unique_tables.keys():
+                        unique_tables[table_name]["is_gold"] = False
+                        unique_tables[table_name]["id"] = table_name
 
-                    def create_table_with_pos_and_neg_samples(example):
-                        table = example["table"]
-                        positive_tables = []
-                        negative_tables = []
+                    def create_table_with_neg_samples(example):
+                        table_name = example["table"]["name"]
+                        num_negative_tables = (
+                            self.config.model_config.num_negative_samples
+                        )
+                        negative_tables = random.sample(
+                            [
+                                table
+                                for name, table in unique_tables.items()
+                                if name != table_name
+                            ],
+                            num_negative_tables,
+                        )
+                        example["table"]["is_gold"] = True
+                        example["table"]["id"] = table_name
+                        example["negative_tables"] = negative_tables
+                        example["num_negative_tables"] = len(negative_tables)
 
-                dataset = load_dataset("wikitablequestions", split=split)
+                        return example
+
+                    dataset = dataset.map(
+                        create_table_with_neg_samples,
+                        batched=False,
+                        num_proc=4,
+                        desc="create_table_with_neg_samples",
+                    )
+
+                    df = dataset.to_pandas()
+
+                    print(df.value_counts(subset=["num_negative_tables"]))
 
                 dataset.save_to_disk(split_file_path)
 

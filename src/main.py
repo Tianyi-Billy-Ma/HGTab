@@ -587,15 +587,15 @@ if __name__ == "__main__":
     ]
 
     dpr_wtq = [
-        "configs/wikiTQ/dpr_wtq.jsonnet",
+        "configs/wikiTQ/hg_wtq.jsonnet",
         "--accelerator",
         "gpu",
-        "--device",
-        "1",
+        "--devices",
+        "2",
         "--strategy",
         "ddp",
         "--experiment_name",
-        "DPR_large_on_WikiTQ",
+        "DPR_large_on_WikiTQ_with_in_batch_over_hypergraph",
         "--mode",
         "train",
         "--override",
@@ -616,11 +616,11 @@ if __name__ == "__main__":
     ]
 
     dpr_sql = [
-        "configs/wikiSQL/dpr_wikisql.jsonnet",
+        "configs/wikiSQL/hg_wikisql.jsonnet",
         "--accelerator",
         "gpu",
         "--devices",
-        "4",
+        "1",
         "--strategy",
         "ddp",
         "--experiment_name",
@@ -646,13 +646,6 @@ if __name__ == "__main__":
         "reset=1",
     ]
 
-    # The code provided is a Python script with a comment `# main(dpr_sql)`. This comment suggests
-    # that there might be a function named `main` that takes a parameter `dpr_sql`. However, without
-    # seeing the actual implementation of the `main` function or any other code in the script, it is
-    # not possible to determine the exact functionality of the code.
-    # The code you provided is a Python script with a comment `# main(dpr_ITR_mix_sql)`. This comment
-    # suggests that there might be a function named `main` that takes `dpr_ITR_mix_sql` as an
-    # argument. However, the actual implementation of the `main` function or any other code logic is
-    # not shown in the snippet you provided.
-    main(dpr_sql)
+    # main(dpr_sql)
     # main(dpr_ITR_mix_sql)
+    main(dpr_wtq)
