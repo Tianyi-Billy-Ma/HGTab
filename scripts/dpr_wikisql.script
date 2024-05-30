@@ -6,7 +6,7 @@
 #$ -q gpu  gpu@@yye7_lab     # Run on the GPU cluster
 #$ -l gpu_card=4     # Run on 1 GPU card
 #$ -N dpr_wikisql_test     # Specify job name
-#$ -o ~/Github/HGTab/outputs/dpr_wikisql_test.log 
+#$ -o ~/Github/HGTab/Logs/system/dpr_wikisql_test.log 
 
 conda activate llm
 cd ~/Github/HGTab
