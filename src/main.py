@@ -626,7 +626,7 @@ if __name__ == "__main__":
         "--experiment_name",
         "DPR_large_on_WikiSQL_with_in_batch_over_hypergraph",
         "--mode",
-        "train",
+        "test",
         "--override",
         "--disable_wandb_logging",
         "--opts",
@@ -646,6 +646,6 @@ if __name__ == "__main__":
         "reset=1",
     ]
 
-    # main(dpr_sql)
+    main()
     # main(dpr_ITR_mix_sql)
-    main(dpr_wtq)
+    # main(dpr_wtq)
