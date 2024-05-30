@@ -313,7 +313,7 @@ class HGExecutor(BaseExecutor):
         return data_to_return
 
     def evaluate_outputs(
-        self, step_outputs, current_data_loader, dataloader_name, mode="test"
+        self, step_outputs, current_data_loader, dataset_name, mode="test"
     ):
         # Compute the scores
         query_embeddings = []
