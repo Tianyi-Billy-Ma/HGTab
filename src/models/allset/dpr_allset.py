@@ -7,15 +7,16 @@ import pytorch_lightning as pl
 from transformers import T5EncoderModel, T5Config
 from transformers import DPRQuestionEncoder, DPRContextEncoder, DPRConfig
 from transformers import BertModel, BertConfig
+from transformers import PreTrainedModel
 from easydict import EasyDict
 
 from torch_scatter import scatter
 from torch.nn.functional import gelu
 
 
-class EmbeddingLayer(pl.LightningModule):
+class EmbeddingLayer(PreTrainedModel, pl.LightningModule):
     def __init__(self, config):
-        super().__init__()
+        super().__init__(config)
         self.hidden_dropout_prob = config.hidden_dropout_prob
         self.vocab_size = config.vocab_size
         self.hidden_size = config.hidden_size
@@ -100,9 +101,9 @@ class HGLayer(pl.LightningModule):
         return emb_V, emb_E
 
 
-class AllSet(pl.LightningModule):
+class AllSet(PreTrainedModel, pl.LightningModule):
     def __init__(self, config):
-        super().__init__()
+        super().__init__(config)
         self.config = config
         self.num_layers = config.num_layers
         self.layers = nn.ModuleList([HGLayer(config) for _ in range(self.num_layers)])
@@ -178,13 +179,8 @@ class RetrieverDPRHG(pl.LightningModule):
         self.query_pooler = None
         self.item_pooler = None
 
-        hypergraph_config = EasyDict(
-            vocab_size=item_model_config.vocab_size,
-            num_layers=2,
-            hidden_size=item_model_config.hidden_size,
-            hidden_act=item_model_config.hidden_act,
-            hidden_dropout_prob=item_model_config.hidden_dropout_prob,
-        )
+        item_model_config.num_layers = 2
+        hypergraph_config = item_model_config
         self.hypergraph_encoder = AllSet(hypergraph_config)
 
         self.loss_fn = nn.CrossEntropyLoss()

@@ -616,7 +616,7 @@ if __name__ == "__main__":
     ]
 
     dpr_sql = [
-        "configs/wikiSQL/hg_wikisql.jsonnet",
+        "configs/wikisql/hg_wikisql.jsonnet",
         "--accelerator",
         "gpu",
         "--devices",
@@ -626,7 +626,7 @@ if __name__ == "__main__":
         "--experiment_name",
         "DPR_large_on_WikiSQL_with_in_batch_over_hypergraph",
         "--mode",
-        "test",
+        "train",
         "--override",
         "--disable_wandb_logging",
         "--opts",
@@ -642,8 +642,8 @@ if __name__ == "__main__":
         "valid.batch_size=4",
         "test.batch_size=4",
         "data_loader.dummy_dataloader=0",
-        "train.additional.label_smoothing_factor=0.1",
-        "reset=1",
+        "train.additional.label_smoothing_f5actor=0.1",
+        # "reset=1",
     ]
 
     main()

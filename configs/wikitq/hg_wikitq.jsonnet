@@ -137,9 +137,9 @@ local override = {
           config: {
             preprocess: ['create_table_with_neg_samples'],
             path: {
-              train: 'TableQA_data/wtq/preprocessed_create_table_with_neg_samples_split_table_train.arrow',
-              validation: 'TableQA_data/wtq/preprocessed_create_table_with_neg_samples_split_table_validation.arrow',
-              test: 'TableQA_data/wtq/preprocessed_create_table_with_neg_samples_split_table_test.arrow',
+              train: 'TableQA_data/wikitq/preprocessed_create_table_with_neg_samples_split_table_train.arrow',
+              validation: 'TableQA_data/wikitq/preprocessed_create_table_with_neg_samples_split_table_validation.arrow',
+              test: 'TableQA_data/wikitq/preprocessed_create_table_with_neg_samples_split_table_test.arrow',
             },
           },
         },
