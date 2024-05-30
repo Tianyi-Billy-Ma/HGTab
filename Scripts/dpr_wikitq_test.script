@@ -7,6 +7,7 @@
 #$ -o ~/Github/HGTab/Logs/system/dpr_wikisql_test.log
 #$ -l gpu_card=2     # Run on 1 GPU card
 #$ -N dpr_wikitq_test     # Specify job name
+
 conda activate llm
 cd ~/Github/HGTab
 python src/main.py configs/wikitq/hg_wikitq.jsonnet --accelerator gpu --devices 2 --strategy ddp --experiment_name DPR_large_on_WikiTQ_with_in_batch_over_hypergraph --mode test --test_evaluation_name original_sets --opts test.batch_size=32
