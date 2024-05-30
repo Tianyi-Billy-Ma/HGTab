@@ -6,7 +6,7 @@
 #$ -q gpu@@yye7_lab     # Run on the GPU cluster
 #$ -o ~/Github/HGTab/Logs/system/dpr_wikitq_train.log
 #$ -l gpu_card=2     # Run on 1 GPU card
-#$ -N wikitq_test     # Specify job name
+#$ -N wikitq_train     # Specify job name
 
 conda activate llm
 cd ~/Github/HGTab
