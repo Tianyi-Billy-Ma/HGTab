@@ -3,10 +3,10 @@
 #$ -pe smp 16         # Specify parallel environment and legal core size
 #$ -M tma2@nd.edu   # Email address for job notification
 #$ -m abe            # Send mail when job begins, ends and aborts
-#$ -q gpu gpu@@yye7_lab     # Run on the GPU cluster
+#$ -q gpu@@yye7_lab     # Run on the GPU cluster
 #$ -o ~/Github/HGTab/Logs/system/dpr_wikisql_test.log
 #$ -l gpu_card=2     # Run on 1 GPU card
-#$ -N dpr_wikitq_test     # Specify job name
+#$ -N wikitq_test     # Specify job name
 
 conda activate llm
 cd ~/Github/HGTab
