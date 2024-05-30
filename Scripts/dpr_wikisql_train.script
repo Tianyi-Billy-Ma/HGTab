@@ -1,0 +1,13 @@
+#!/bin/bash
+
+#$ -pe smp 32         # Specify parallel environment and legal core size
+#$ -M tma2@nd.edu   # Email address for job notification
+#$ -m abe            # Send mail when job begins, ends and aborts
+#$ -q gpu@@yye7_lab     # Run on the GPU cluster
+#$ -o ~/Github/HGTab/Logs/system/dpr_wikisql_train.log
+#$ -l gpu_card=4     # Run on 1 GPU card
+#$ -N wikisql_test     # Specify job name
+
+conda activate llm
+cd ~/Github/HGTab
+python src/main.py configs/wikitq/hg_wikisql.jsonnet --accelerator gpu --devices 4 --strategy ddp --experiment_name DPR_large_on_WikiSQL_with_in_batch_over_hypergraph --mode train --override --opts train.batch_size=1 train.scheduler=None train.epochs=20 train.lr=0.00001 train.additional.gradient_accumulation_steps=4 train.additional.warmup_steps=200 train.additional.early_stop_patience=8 train.additional.save_top_k=3 valid.batch_size=8 test.batch_size=8 valid.step_size=200 reset=1
