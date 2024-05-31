@@ -226,31 +226,10 @@ class HGExecutor(BaseExecutor):
         }
         return data_to_return
 
-    def on_validation_epoch_start(self):
-        self.validation_step_outputs = [[]] * len(self.val_dataloader())
-
     def validation_step(self, sample_batched, batch_idx, dataloader_idx=0):
         return self._compute_query_embeddings_step(sample_batched, batch_idx)
 
-    def on_validation_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0):
-        self.validation_step_outputs[dataloader_idx].append(outputs)
-
-    def on_validation_epoch_end(self, validation_step_outputs=None):
-        validation_step_outputs = self.validation_step_outputs
-        for i in range(len(self.val_dataloader())):
-            validation_step_output = validation_step_outputs[i]
-            if len(validation_step_output) > 0:
-                log_dict = self.evaluate_outputs(
-                    validation_step_output,
-                    self.val_dataloader()[i],
-                    self.val_dataloader_names[i],
-                )
-            self.logging_results(log_dict, prefix=self.val_dataloader_names[i])
-        return None
-
-    def on_test_batch_start(self, sample_batched, batch_idx, dataloader_idx=0):
-        # This is called when the test epoch starts.
-        # Initialize the test_step_outputs to store the outputs of each test step.
+    def on_test_epoch_start(self):
         self.test_step_outputs = [[]] * len(self.test_dataloader())
 
     def test_step(self, sample_batched, batch_idx, dataloader_idx=0):
@@ -258,27 +237,6 @@ class HGExecutor(BaseExecutor):
 
     def on_test_batch_end(self, outputs, batch, batch_idx, dataloader_idx=0):
         self.test_step_outputs[dataloader_idx].append(outputs)
-
-    def on_test_epoch_end(self):
-        test_step_outputs = self.test_step_outputs
-        self.save_HF_model()
-        for i in range(len(self.test_dataloader())):
-            if len(self.test_dataloader()) == 1:
-                test_step_output = test_step_outputs[0]
-            else:
-                test_step_output = test_step_outputs[i]
-            if len(test_step_output) > 0:
-                log_dict = self.evaluate_outputs(
-                    test_step_output,
-                    self.test_dataloader()[i],
-                    self.test_dataloader_names[i],
-                )
-                self.logging_results(
-                    log_dict,
-                    prefix=f"{self.config.test.evaluation_name}_{self.test_dataloader_names[i]}",
-                )
-
-        return None
 
     def _compute_query_embeddings_step(self, sample_batched, batch_idx):
         test_query_batch = {
